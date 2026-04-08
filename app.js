@@ -14,6 +14,8 @@ const transactionRoutes = require('./src/routes/transactionRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
 const goalRoutes = require('./src/routes/goalRoutes');
 
+const budgetRoutes = require('./src/routes/budgetRoutes');
+
 
 // Import middlewares
 const { errorHandler } = require('./src/middlewares/errorMiddleware');
@@ -81,6 +83,8 @@ app.use('/api/transactions', transactionRoutes);
 
 app.use('/api/categories', categoryRoutes);
 app.use('/api/goals', goalRoutes);
+
+app.use('/api/budgets', budgetRoutes);
 
 
 // 404 handler

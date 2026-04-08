@@ -6,8 +6,6 @@ const {
   getPaginationMeta,
 } = require("../utils/paginationHelper");
 
-// Category validation is performed by `validateCategoryExists` and `validateCategoryType` middleware
-
 /**
  * Create a transaction
  */
@@ -186,6 +184,38 @@ const getTotalSummary = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, data: { summary } });
 });
 
+/**
+ * Stop a recurring transaction
+ */
+const stopRecurring = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  const transaction = await Transaction.findById(id);
+  if (!transaction) return next(new AppError("Transaction not found", 404));
+
+  if (
+    req.user.role !== "admin" &&
+    transaction.user.toString() !== req.user._id.toString()
+  ) {
+    return next(new AppError("Access denied", 403));
+  }
+
+  if (!transaction.isRecurring) {
+    return next(new AppError("Transaction is not recurring", 400));
+  }
+
+  transaction.isRecurring = false;
+  transaction.frequency = null;
+  transaction.nextDate = null;
+  await transaction.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Recurring transaction stopped successfully",
+    data: { transaction },
+  });
+});
+
 module.exports = {
   createTransaction,
   getTransactions,
@@ -193,4 +223,5 @@ module.exports = {
   updateTransaction,
   deleteTransaction,
   getTotalSummary,
+  stopRecurring,
 };

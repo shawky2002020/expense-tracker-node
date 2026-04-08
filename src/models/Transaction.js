@@ -48,7 +48,7 @@ const transactionSchema = new mongoose.Schema(
     },
     frequency: {
       type: String,
-      enum: ["daily", "weekly", "monthly", "yearly"],
+      enum: ["daily", "weekly", "monthly", "yearly", null],
       default: null,
     },
     nextDate: {
@@ -62,5 +62,6 @@ const transactionSchema = new mongoose.Schema(
 );
 
 transactionSchema.index({ user: 1, date: -1 });
+transactionSchema.index({ isRecurring: 1, nextDate: 1 });
 
 module.exports = mongoose.model("Transaction", transactionSchema);
