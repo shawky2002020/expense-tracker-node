@@ -8,6 +8,8 @@ const rateLimit = require('express-rate-limit');
 // Import routes
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
+const categoryRoutes = require('./src/routes/categoryRoutes');
+const goalRoutes = require('./src/routes/goalRoutes');
 
 // Import middlewares
 const { errorHandler } = require('./src/middlewares/errorMiddleware');
@@ -70,6 +72,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/goals', goalRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
