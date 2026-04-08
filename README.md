@@ -87,7 +87,7 @@ PATCH  /api/goals/:id
 | Member | Module | Deliverables |
 |--------|--------|--------------|
 | Shawky Ahmad Shawky | Auth & Security | JWT, user management, role middleware |
-| 2 | Transactions | CRUD, pagination, validation schemas |
+| Moamen Alaa Soltan | Transactions |Transactions CRUD, validation schemas , Postman collection |
 | Mazen Raafat Abdelhameed | Categories & Goals | Category CRUD, goal progress tracking |
 | 4 | Budget & Recurring | Budget alerts, cron jobs |
 | 5 | Analytics | Aggregations, trends, CSV export |
