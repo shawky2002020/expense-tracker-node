@@ -1,7 +1,14 @@
 const { asyncHandler, AppError } = require("../middlewares/errorMiddleware");
 const Budget = require("../models/Budget");
-const Transaction = require("../models/Transaction");
+const {
+  calculateBatchSpending,
+  calculateSingleSpending,
+  enrichBudgetWithSpending,
+} = require("../utils/budgetHelper");
 
+/**
+ * Create a budget
+ */
 const createBudget = asyncHandler(async (req, res, next) => {
   const { category, amount, month, year } = req.body;
 
@@ -38,74 +45,48 @@ const createBudget = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Get all budgets with spending enrichment and inline warnings
+ */
 const getBudgets = asyncHandler(async (req, res, next) => {
   const { month, year, category } = req.query;
 
-  const query = {
-    user: req.user._id,
-  };
-
+  const query = { user: req.user._id };
   if (month) query.month = month;
   if (year) query.year = year;
   if (category) query.category = category;
 
   const budgets = await Budget.find(query)
-    .populate("category", "name")
+    .populate("category", "name type")
     .sort({ year: -1, month: -1 });
 
-  // Budget Alert
+  // Single batch aggregation instead of N+1 queries
+  const spendingMap = await calculateBatchSpending(req.user._id, budgets);
+
   const warnings = [];
-  const enrichedBudgets = [];
+  const enrichedBudgets = budgets.map((budget) => {
+    const categoryId = budget.category._id || budget.category;
+    const key = `${categoryId}_${budget.month}_${budget.year}`;
+    const totalSpent = spendingMap.get(key) || 0;
+    const categoryName = budget.category?.name || "Unknown";
 
-  for (const budget of budgets) {
-    const budgetObj = budget.toJSON();
-
-    // Calculate actual spending for this category in this month/year
-    const startDate = new Date(budget.year, budget.month - 1, 1);
-    const endDate = new Date(budget.year, budget.month, 0, 23, 59, 59, 999);
-
-    const [spendingResult] = await Transaction.aggregate([
-      {
-        $match: {
-          user: req.user._id,
-          type: "expense",
-          category: budget.category._id,
-          date: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalSpent: { $sum: "$amount" },
-        },
-      },
-    ]);
-
-    const totalSpent = spendingResult?.totalSpent || 0;
-    const remainingAmount = Math.max(budget.amount - totalSpent, 0);
-    const percentage = Math.min(
-      Math.round((totalSpent / budget.amount) * 100),
-      100,
+    const budgetObj = enrichBudgetWithSpending(
+      budget.toJSON(),
+      budget.amount,
+      totalSpent,
+      categoryName,
     );
 
-    budgetObj.totalSpent = totalSpent;
-    budgetObj.remainingAmount = remainingAmount;
-    budgetObj.percentage = percentage;
-
-    // Add warning if over budget
     if (totalSpent > budget.amount) {
       warnings.push({
         budgetId: budget._id,
-        category: budget.category.name,
-        message: `You have exceeded your ${budget.category.name} budget by $${(totalSpent - budget.amount).toFixed(2)}`,
+        category: categoryName,
+        message: budgetObj.warning,
       });
     }
 
-    enrichedBudgets.push(budgetObj);
-  }
+    return budgetObj;
+  });
 
   const response = {
     success: true,
@@ -122,56 +103,34 @@ const getBudgets = asyncHandler(async (req, res, next) => {
   res.status(200).json(response);
 });
 
+/**
+ * Get a single budget by ID with spending enrichment
+ */
 const getBudgetById = asyncHandler(async (req, res, next) => {
   const budget = await Budget.findOne({
     _id: req.params.id,
     user: req.user._id,
-  }).populate("category", "name");
+  }).populate("category", "name type");
 
   if (!budget) {
     return next(new AppError("Budget not found", 404));
   }
 
-  const budgetObj = budget.toJSON();
-
-  // Calculate actual spending for this category in this month/year
-  const startDate = new Date(budget.year, budget.month - 1, 1);
-  const endDate = new Date(budget.year, budget.month, 0, 23, 59, 59, 999);
-
-  const [spendingResult] = await Transaction.aggregate([
-    {
-      $match: {
-        user: req.user._id,
-        type: "expense",
-        category: budget.category._id,
-        date: {
-          $gte: startDate,
-          $lte: endDate,
-        },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalSpent: { $sum: "$amount" },
-      },
-    },
-  ]);
-
-  const totalSpent = spendingResult?.totalSpent || 0;
-  const remainingAmount = Math.max(budget.amount - totalSpent, 0);
-  const percentage = Math.min(
-    Math.round((totalSpent / budget.amount) * 100),
-    100,
+  const categoryId = budget.category._id || budget.category;
+  const totalSpent = await calculateSingleSpending(
+    req.user._id,
+    categoryId,
+    budget.month,
+    budget.year,
   );
 
-  budgetObj.totalSpent = totalSpent;
-  budgetObj.remainingAmount = remainingAmount;
-  budgetObj.percentage = percentage;
-
-  if (totalSpent > budget.amount) {
-    budgetObj.warning = `You have exceeded your ${budget.category.name} budget by $${(totalSpent - budget.amount).toFixed(2)}`;
-  }
+  const categoryName = budget.category?.name || "Unknown";
+  const budgetObj = enrichBudgetWithSpending(
+    budget.toJSON(),
+    budget.amount,
+    totalSpent,
+    categoryName,
+  );
 
   res.status(200).json({
     success: true,
@@ -181,6 +140,9 @@ const getBudgetById = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Update a budget
+ */
 const updateBudget = asyncHandler(async (req, res, next) => {
   const budget = await Budget.findOne({
     _id: req.params.id,
@@ -233,6 +195,9 @@ const updateBudget = asyncHandler(async (req, res, next) => {
   });
 });
 
+/**
+ * Delete a budget
+ */
 const deleteBudget = asyncHandler(async (req, res, next) => {
   const budget = await Budget.findOneAndDelete({
     _id: req.params.id,
@@ -260,32 +225,17 @@ const getBudgetAlerts = asyncHandler(async (req, res, next) => {
   if (month) query.month = month;
   if (year) query.year = year;
 
-  const budgets = await Budget.find(query).populate("category", "name");
+  const budgets = await Budget.find(query).populate("category", "name type");
+
+  // Single batch aggregation
+  const spendingMap = await calculateBatchSpending(req.user._id, budgets);
 
   const alerts = [];
 
   for (const budget of budgets) {
-    const startDate = new Date(budget.year, budget.month - 1, 1);
-    const endDate = new Date(budget.year, budget.month, 0, 23, 59, 59, 999);
-
-    const [spendingResult] = await Transaction.aggregate([
-      {
-        $match: {
-          user: req.user._id,
-          type: "expense",
-          category: budget.category._id,
-          date: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalSpent: { $sum: "$amount" },
-        },
-      },
-    ]);
-
-    const totalSpent = spendingResult?.totalSpent || 0;
+    const categoryId = budget.category._id || budget.category;
+    const key = `${categoryId}_${budget.month}_${budget.year}`;
+    const totalSpent = spendingMap.get(key) || 0;
 
     if (totalSpent > budget.amount) {
       alerts.push({
