@@ -1,6 +1,6 @@
-# Member 2: Transactions + Validation
+# Moamen Soltan: Transactions + Validation
 
-What I added in this change (files follow the existing project structure):
+What I added in this change :
 
 - src/models/Transaction.js — Mongoose model for transactions (user ref, type, amount, category, date, notes)
 - src/controllers/transactionController.js — CRUD controller, filtering, sorting, pagination, and summary total
@@ -12,14 +12,18 @@ What I added in this change (files follow the existing project structure):
 - src/utils/paginationHelper.js — pagination helpers
 - src/utils/filterHelper.js — helpers to build transaction filters
 
+
+
 Additionally updated:
 
 - app.js — registered the transactions routes: `app.use('/api/transactions', transactionRoutes)`
 
-Notes and assumptions:
+Additionally Added :
+Postman collection , to test all transactions APIs + auth -> exported as JSON
 
-- Authentication: all transaction endpoints require authentication via the existing `authenticate` middleware (Member 1).
-- Category validation: controller attempts to `require('../models/Category')` and, if present, verifies the category exists and that its `type` matches the transaction `type`. Member 3 should provide a `Category` model with a `type` field for full validation.
+Notes :
+
+
 - Validation: Joi is used across the project; middleware strips unknown fields and returns structured errors identical in style to existing validators.
 - Pagination & filtering: implemented `page`, `limit`, `type`, `category`, `startDate`, `endDate`, `sortBy`, `sortOrder` query parameters.
 
@@ -36,5 +40,3 @@ PUT    /api/transactions/:id
 DELETE /api/transactions/:id
 GET    /api/transactions/summary/total
 ```
-
-If you'd like, I can add tests, seed data, or a minimal `Category` model to enable category-type validation end-to-end.

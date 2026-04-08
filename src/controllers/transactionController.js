@@ -3,14 +3,7 @@ const Transaction = require('../models/Transaction');
 const { buildTransactionFilter } = require('../utils/filterHelper');
 const { getPagination, getPaginationMeta } = require('../utils/paginationHelper');
 
-// Category model may be implemented by Member 3. Attempt to require it if present.
-let Category = null;
-try {
-  // eslint-disable-next-line global-require
-  Category = require('../models/Category');
-} catch (err) {
-  Category = null;
-}
+// Category validation is performed by `validateCategoryExists` and `validateCategoryType` middleware
 
 /**
  * Create a transaction
@@ -18,12 +11,6 @@ try {
 const createTransaction = asyncHandler(async (req, res, next) => {
   const { type, amount, currency, category, description, date, notes } = req.body;
 
-  // If category model exists, verify it and ensure types match
-  if (category && Category) {
-    const cat = await Category.findById(category);
-    if (!cat) return next(new AppError('Category not found', 400));
-    if (cat.type && cat.type !== type) return next(new AppError('Category type does not match transaction type', 400));
-  }
 
   const transaction = await Transaction.create({
     user: req.user._id,
@@ -99,11 +86,7 @@ const updateTransaction = asyncHandler(async (req, res, next) => {
   }
 
   // If category provided and Category model exists, verify type
-  if (req.body.category && Category) {
-    const cat = await Category.findById(req.body.category);
-    if (!cat) return next(new AppError('Category not found', 400));
-    if (cat.type && req.body.type && cat.type !== req.body.type) return next(new AppError('Category type does not match transaction type', 400));
-  }
+  // Category existence/type validation handled by route middleware
 
   Object.keys(req.body).forEach((key) => {
     transaction[key] = req.body[key];
@@ -127,7 +110,7 @@ const deleteTransaction = asyncHandler(async (req, res, next) => {
     return next(new AppError('Access denied', 403));
   }
 
-  await transaction.remove();
+  await transaction.deleteOne();
 
   res.status(200).json({ success: true, message: 'Transaction deleted' });
 });
