@@ -9,9 +9,9 @@
 | Module | Owner | Core Responsibility |
 |--------|-------|---------------------|
 | **Auth & Security** | Shawky Ahmad Shawky | JWT authentication, role-based access (admin/user) |
-| **Transactions** | Member 2 | CRUD operations, filtering, pagination, validation schemas |
+| **Transactions** | Moamen Alaa Soltan | CRUD operations, filtering, pagination, validation schemas |
 | **Categories & Goals** | Mazen Raafat Abdelhameed | Category management, savings goals with progress tracking |
-| **Budget & Recurring** | Member 4 | Budget alerts, cron jobs for recurring transactions |
+| **Budget & Recurring** | Hassan Abdelhamed Hassan | Budget alerts, cron jobs for recurring transactions |
 | **Analytics** | Member 5 | Spending aggregation, trends, CSV/PDF export |
 
 ---
@@ -89,5 +89,5 @@ PATCH  /api/goals/:id
 | Shawky Ahmad Shawky | Auth & Security | JWT, user management, role middleware |
 | Moamen Alaa Soltan | Transactions |Transactions CRUD, validation schemas , Postman collection |
 | Mazen Raafat Abdelhameed | Categories & Goals | Category CRUD, goal progress tracking |
-| 4 | Budget & Recurring | Budget alerts, cron jobs |
+| Hassan Abdelhamed Hassan | Budget & Recurring | Budget alerts, cron jobs |
 | 5 | Analytics | Aggregations, trends, CSV export |

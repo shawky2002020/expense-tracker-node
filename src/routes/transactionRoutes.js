@@ -17,6 +17,7 @@ const {
   updateTransaction,
   deleteTransaction,
   getTotalSummary,
+  stopRecurring,
 } = require('../controllers/transactionController');
 
 const { validateCategoryExists, validateCategoryType } = require('../middlewares/categoryMiddleware');
@@ -25,6 +26,7 @@ const { validateCategoryExists, validateCategoryType } = require('../middlewares
 router.post('/', authenticate, validateBody(createTransactionSchema), validateCategoryExists, validateCategoryType, createTransaction);
 router.get('/', authenticate, validateQuery(getTransactionsQuerySchema), getTransactions);
 router.get('/summary/total', authenticate, getTotalSummary);
+router.patch('/:id/stop-recurring', authenticate, validateParams(transactionIdParamSchema), stopRecurring);
 router.get('/:id', authenticate, validateParams(transactionIdParamSchema), getTransactionById);
 router.put('/:id', authenticate, validateParams(transactionIdParamSchema), validateBody(updateTransactionSchema), validateCategoryExists, validateCategoryType, updateTransaction);
 router.delete('/:id', authenticate, validateParams(transactionIdParamSchema), deleteTransaction);
