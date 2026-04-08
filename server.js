@@ -1,6 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const mongoose = require('mongoose');
+const { startRecurringTransactionJob } = require('./src/jobs/recurringTransactionJob');
 
 const PORT = process.env.PORT || 3000;
 
@@ -38,6 +39,9 @@ process.on('uncaughtException', (err) => {
 // Start server
 const startServer = async () => {
   await connectDB();
+
+  // Start recurring transaction job
+  startRecurringTransactionJob();
 
   const server = app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
