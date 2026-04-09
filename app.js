@@ -15,6 +15,7 @@ const categoryRoutes = require('./src/routes/categoryRoutes');
 const goalRoutes = require('./src/routes/goalRoutes');
 
 const budgetRoutes = require('./src/routes/budgetRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
 
 
 // Import middlewares
@@ -85,6 +86,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/goals', goalRoutes);
 
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 
 // 404 handler
