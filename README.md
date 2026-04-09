@@ -12,7 +12,7 @@
 | **Transactions** | Moamen Alaa Soltan | CRUD operations, filtering, pagination, validation schemas |
 | **Categories & Goals** | Mazen Raafat Abdelhameed | Category management, savings goals with progress tracking |
 | **Budget & Recurring** | Hassan Abdelhamed Hassan | Budget alerts, cron jobs for recurring transactions |
-| **Analytics** | Member 5 | Spending aggregation, trends, CSV/PDF export |
+| **Analytics** | Hassan Muhammad | Spending aggregation, trends, CSV export |
 
 ---
 
@@ -53,7 +53,7 @@ PATCH  /api/goals/:id
 ├── controllers/     # Business logic per module
 ├── routes/          # API endpoints
 ├── middlewares/     # Auth, role, validation, ownership
-├── validations/     # Joi/Zod schemas 
+├── validations/     # Joi/Zod schemas
 ├── services/        # Alert, recurring, analytics logic
 ├── utils/           # Pagination, filters, date helpers
 └── jobs/            # Cron job for recurring transactions
@@ -90,4 +90,4 @@ PATCH  /api/goals/:id
 | Moamen Alaa Soltan | Transactions |Transactions CRUD, validation schemas , Postman collection |
 | Mazen Raafat Abdelhameed | Categories & Goals | Category CRUD, goal progress tracking |
 | Hassan Abdelhamed Hassan | Budget & Recurring | Budget alerts, cron jobs |
-| 5 | Analytics | Aggregations, trends, CSV export |
+| Hassan Muhammad | Analytics | Aggregations, trends, CSV export |
