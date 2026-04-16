@@ -1,0 +1,699 @@
+openapi: 3.0.0
+info:
+  title: Expense Tracker API
+  version: 1.0.0
+  description: API Documentation for the Expense Tracker Node.js project.
+
+servers:
+  - url: /api
+    description: Base path for all API routes
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized Access
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Not authorized to access this route
+    ValidationError:
+      description: Validation Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Invalid input data
+    NotFoundError:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Resource not found
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------------------------------------------------
+  # AUTH ROUTES
+  # ---------------------------------------------------------
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, email, username, password]
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: User logged in successfuly (token returned)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/forgot-password:
+    post:
+      summary: Send forgot password email
+      tags: [Auth]
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Email sent
+
+  /auth/reset-password:
+    put:
+      summary: Reset password
+      tags: [Auth]
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Password reset successfully
+
+  /auth/me:
+    get:
+      summary: Get current logged-in user profile
+      tags: [Auth]
+      responses:
+        '200':
+          description: Successful retrieval
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/profile:
+    put:
+      summary: Update user profile
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/change-password:
+    put:
+      summary: Change password for active user
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password updated
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      summary: Logout active user
+      tags: [Auth]
+      responses:
+        '200':
+          description: Logged out successfully
+
+  # ---------------------------------------------------------
+  # USER ROUTES
+  # ---------------------------------------------------------
+  /users:
+    get:
+      summary: Get list of users (Admin only)
+      tags: [Users]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Returns paginated users list
+
+  /users/stats:
+    get:
+      summary: Get statistics of users (Admin only)
+      tags: [Users]
+      responses:
+        '200':
+          description: Returns user statistics
+
+  /users/{userId}:
+    get:
+      summary: Get details of a single user
+      tags: [Users]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns user object
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      summary: Update user (Admin or self)
+      tags: [Users]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User updated
+    delete:
+      summary: Soft delete user (Deactivate)
+      tags: [Users]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deactivated
+
+  /users/{userId}/permanent:
+    delete:
+      summary: Permanently delete user
+      tags: [Users]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User permanently deleted
+
+  /users/{userId}/reactivate:
+    put:
+      summary: Reactivate soft-deleted user
+      tags: [Users]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User reactivated
+
+  # ---------------------------------------------------------
+  # TRANSACTION ROUTES
+  # ---------------------------------------------------------
+  /transactions:
+    post:
+      summary: Create a transaction
+      tags: [Transactions]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, amount, date]
+              properties:
+                type:
+                  type: string
+                  enum: [income, expense, transfer]
+                amount:
+                  type: number
+                date:
+                  type: string
+                  format: date
+                categoryId:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Transaction created
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      summary: Get a list of transactions (paginated)
+      tags: [Transactions]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated transactions
+          
+  /transactions/summary/total:
+    get:
+      summary: Get total transaction summary
+      tags: [Transactions]
+      responses:
+        '200':
+          description: Summary retrieved
+
+  /transactions/{id}:
+    get:
+      summary: Get a transaction by ID
+      tags: [Transactions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns a single transaction
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      summary: Update a transaction
+      tags: [Transactions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Transaction updated
+    delete:
+      summary: Delete a transaction
+      tags: [Transactions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction deleted
+
+  /transactions/{id}/stop-recurring:
+    patch:
+      summary: Stop a recurring transaction
+      tags: [Transactions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recurring transaction stopped
+
+  # ---------------------------------------------------------
+  # CATEGORY ROUTES
+  # ---------------------------------------------------------
+  /categories:
+    post:
+      summary: Create a category (Admin only)
+      tags: [Categories]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [income, expense, both]
+      responses:
+        '201':
+          description: Category created
+    get:
+      summary: Get all active categories
+      tags: [Categories]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Returns paginated categories
+
+  /categories/type/{type}:
+    get:
+      summary: Get active categories by type
+      tags: [Categories]
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of targeted categories
+
+  /categories/{id}:
+    put:
+      summary: Update a category (Admin only)
+      tags: [Categories]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category updated
+    delete:
+      summary: Soft delete category (Admin only)
+      tags: [Categories]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category deleted
+
+  # ---------------------------------------------------------
+  # GOAL ROUTES
+  # ---------------------------------------------------------
+  /goals:
+    post:
+      summary: Create a savings/expense goal
+      tags: [Goals]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, targetAmount, deadline]
+              properties:
+                name:
+                  type: string
+                targetAmount:
+                  type: number
+                deadline:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Goal created
+    get:
+      summary: Get all goals
+      tags: [Goals]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Returns a list of goals
+
+  /goals/progress/{id}:
+    get:
+      summary: Get the specific progress of a goal
+      tags: [Goals]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns goal progress
+
+  /goals/{id}:
+    get:
+      summary: Get a specific goal details
+      tags: [Goals]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Target goal object
+    patch:
+      summary: Update a goal
+      tags: [Goals]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Goal updated
+    delete:
+      summary: Delete a goal
+      tags: [Goals]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Goal deleted
+
+  # ---------------------------------------------------------
+  # BUDGET ROUTES
+  # ---------------------------------------------------------
+  /budgets:
+    post:
+      summary: Create a budget target
+      tags: [Budgets]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, categoryId, month, year]
+              properties:
+                amount:
+                  type: number
+                categoryId:
+                  type: string
+                month:
+                  type: integer
+                year:
+                  type: integer
+      responses:
+        '201':
+          description: Budget created
+    get:
+      summary: Get active budgets
+      tags: [Budgets]
+      responses:
+        '200':
+          description: List of budgets
+
+  /budgets/alerts:
+    get:
+      summary: View overloaded budget capacity alerts
+      tags: [Budgets]
+      responses:
+        '200':
+          description: Alert list
+
+  /budgets/{id}:
+    get:
+      summary: Get specific budget detail
+      tags: [Budgets]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Target budget
+    put:
+      summary: Update budget
+      tags: [Budgets]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Budget Updated
+    delete:
+      summary: Delete budget
+      tags: [Budgets]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Budget Deleted
+
+  # ---------------------------------------------------------
+  # ANALYTICS ROUTES
+  # ---------------------------------------------------------
+  /analytics/monthly-spending:
+    get:
+      summary: Analyze monthly spending
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Monthly spending datasets generated
+  /analytics/summary:
+    get:
+      summary: Summary of all system analytics
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Summary payload generated
+  /analytics/export/csv:
+    get:
+      summary: Export all analytics explicitly as CSV
+      tags: [Analytics]
+      responses:
+        '200':
+          description: CSV file payload output

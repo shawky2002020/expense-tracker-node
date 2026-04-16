@@ -1,5 +1,6 @@
 const { asyncHandler, AppError } = require('../middlewares/errorMiddleware');
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 /**
  * @desc    Get all users
@@ -144,6 +145,8 @@ const updateUser = asyncHandler(async (req, res, next) => {
     return next(new AppError('User not found', 404));
   }
 
+  logger.info(`User ${user._id} updated by ${req.user?._id || 'unknown'}`, { action: 'UPDATE_USER', targetUserId: user._id, performedBy: req.user?._id });
+
   res.status(200).json({
     success: true,
     message: 'User updated successfully',
@@ -169,6 +172,8 @@ const deleteUser = asyncHandler(async (req, res, next) => {
   user.isActive = false;
   await user.save();
 
+  logger.info(`User ${user._id} deactivated by ${req.user?._id || 'unknown'}`, { action: 'DEACTIVATE_USER', targetUserId: user._id, performedBy: req.user?._id });
+
   res.status(200).json({
     success: true,
     message: 'User deactivated successfully',
@@ -187,6 +192,8 @@ const permanentDeleteUser = asyncHandler(async (req, res, next) => {
   if (!user) {
     return next(new AppError('User not found', 404));
   }
+
+  logger.info(`User ${user._id} permanently deleted by ${req.user?._id || 'unknown'}`, { action: 'PERMANENT_DELETE_USER', targetUserId: user._id, performedBy: req.user?._id });
 
   res.status(200).json({
     success: true,
@@ -210,6 +217,8 @@ const reactivateUser = asyncHandler(async (req, res, next) => {
   if (!user) {
     return next(new AppError('User not found', 404));
   }
+
+  logger.info(`User ${user._id} reactivated by ${req.user?._id || 'unknown'}`, { action: 'REACTIVATE_USER', targetUserId: user._id, performedBy: req.user?._id });
 
   res.status(200).json({
     success: true,

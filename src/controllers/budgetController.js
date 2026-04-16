@@ -5,6 +5,8 @@ const {
   calculateSingleSpending,
   enrichBudgetWithSpending,
 } = require("../utils/budgetHelper");
+const logger = require("../utils/logger");
+const { getPagination, getPaginationMeta } = require("../utils/paginationHelper");
 
 /**
  * Create a budget
@@ -36,6 +38,8 @@ const createBudget = asyncHandler(async (req, res, next) => {
     year,
   });
 
+  logger.info(`User ${req.user._id} created budget ${budget._id} for category ${category}`, { action: 'CREATE_BUDGET', userId: req.user._id, budgetId: budget._id });
+
   res.status(201).json({
     success: true,
     message: "Budget created successfully",
@@ -49,16 +53,23 @@ const createBudget = asyncHandler(async (req, res, next) => {
  * Get all budgets with spending enrichment and inline warnings
  */
 const getBudgets = asyncHandler(async (req, res, next) => {
-  const { month, year, category } = req.query;
+  const { month, year, category, page = 1, limit = 10 } = req.query;
+  const { page: p, limit: l, skip } = getPagination(page, limit);
 
   const query = { user: req.user._id };
   if (month) query.month = month;
   if (year) query.year = year;
   if (category) query.category = category;
 
-  const budgets = await Budget.find(query)
-    .populate("category", "name type")
-    .sort({ year: -1, month: -1 });
+  const [total, budgets] = await Promise.all([
+    Budget.countDocuments(query),
+    Budget.find(query)
+      .populate("category", "name type")
+      .sort({ year: -1, month: -1 })
+      .skip(skip)
+      .limit(l)
+  ]);
+  const meta = getPaginationMeta(total, p, l);
 
   // Single batch aggregation instead of N+1 queries
   const spendingMap = await calculateBatchSpending(req.user._id, budgets);
@@ -92,7 +103,7 @@ const getBudgets = asyncHandler(async (req, res, next) => {
     success: true,
     data: {
       budgets: enrichedBudgets,
-      count: enrichedBudgets.length,
+      meta,
     },
   };
 
@@ -186,6 +197,8 @@ const updateBudget = asyncHandler(async (req, res, next) => {
 
   await budget.save();
 
+  logger.info(`User ${req.user._id} updated budget ${budget._id}`, { action: 'UPDATE_BUDGET', userId: req.user._id, budgetId: budget._id });
+
   res.status(200).json({
     success: true,
     message: "Budget updated successfully",
@@ -207,6 +220,8 @@ const deleteBudget = asyncHandler(async (req, res, next) => {
   if (!budget) {
     return next(new AppError("Budget not found", 404));
   }
+
+  logger.info(`User ${req.user._id} deleted budget ${budget._id}`, { action: 'DELETE_BUDGET', userId: req.user._id, budgetId: budget._id });
 
   res.status(200).json({
     success: true,

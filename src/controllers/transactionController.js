@@ -5,6 +5,7 @@ const {
   getPagination,
   getPaginationMeta,
 } = require("../utils/paginationHelper");
+const logger = require("../utils/logger");
 
 /**
  * Create a transaction
@@ -36,6 +37,8 @@ const createTransaction = asyncHandler(async (req, res, next) => {
     frequency: isRecurring ? frequency : null,
     nextDate: isRecurring ? nextDate : null,
   });
+
+  logger.info(`User ${req.user._id} created transaction ${transaction._id}`, { action: 'CREATE_TRANSACTION', userId: req.user._id, transactionId: transaction._id });
 
   res.status(201).json({
     success: true,
@@ -134,6 +137,8 @@ const updateTransaction = asyncHandler(async (req, res, next) => {
 
   await transaction.save();
 
+  logger.info(`User ${req.user._id} updated transaction ${transaction._id}`, { action: 'UPDATE_TRANSACTION', userId: req.user._id, transactionId: transaction._id });
+
   res
     .status(200)
     .json({
@@ -160,6 +165,8 @@ const deleteTransaction = asyncHandler(async (req, res, next) => {
   }
 
   await transaction.deleteOne();
+
+  logger.info(`User ${req.user._id} deleted transaction ${transaction._id}`, { action: 'DELETE_TRANSACTION', userId: req.user._id, transactionId: transaction._id });
 
   res.status(200).json({ success: true, message: "Transaction deleted" });
 });
@@ -208,6 +215,8 @@ const stopRecurring = asyncHandler(async (req, res, next) => {
   transaction.frequency = null;
   transaction.nextDate = null;
   await transaction.save();
+
+  logger.info(`User ${req.user._id} stopped recurring transaction ${transaction._id}`, { action: 'STOP_RECURRING_TRANSACTION', userId: req.user._id, transactionId: transaction._id });
 
   res.status(200).json({
     success: true,
