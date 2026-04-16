@@ -1,7 +1,8 @@
 const { asyncHandler, AppError } = require('../middlewares/errorMiddleware');
 const Goal = require('../models/Goal');
 const { calculateProgress, getDaysRemaining, getGoalStatus } = require('../utils/goalProgressCalculator');
-
+const logger = require("../utils/logger");
+const { getPagination, getPaginationMeta } = require("../utils/paginationHelper");
 
 const createGoal = asyncHandler(async (req, res, next) => {
   const { name, targetAmount, deadline, description } = req.body;
@@ -14,6 +15,8 @@ const createGoal = asyncHandler(async (req, res, next) => {
     description,
   });
 
+  logger.info(`User ${req.user._id} created goal ${goal._id}`, { action: 'CREATE_GOAL', userId: req.user._id, goalId: goal._id });
+
   res.status(201).json({
     success: true,
     message: 'Goal created successfully',
@@ -25,7 +28,14 @@ const createGoal = asyncHandler(async (req, res, next) => {
 
 
 const getGoals = asyncHandler(async (req, res, next) => {
-  const goals = await Goal.find({ userId: req.user._id }).sort({ createdAt: -1 });
+  const { page = 1, limit = 10 } = req.query;
+  const { page: p, limit: l, skip } = getPagination(page, limit);
+
+  const [total, goals] = await Promise.all([
+    Goal.countDocuments({ userId: req.user._id }),
+    Goal.find({ userId: req.user._id }).sort({ createdAt: -1 }).skip(skip).limit(l)
+  ]);
+  const meta = getPaginationMeta(total, p, l);
 
   // Enrich goals with status info
   const enrichedGoals = goals.map(goal => {
@@ -39,7 +49,7 @@ const getGoals = asyncHandler(async (req, res, next) => {
     success: true,
     data: {
       goals: enrichedGoals,
-      count: enrichedGoals.length,
+      meta,
     },
   });
 });
@@ -90,6 +100,8 @@ const updateGoal = asyncHandler(async (req, res, next) => {
   // Save triggers the pre-save hook (auto-complete check)
   await goal.save();
 
+  logger.info(`User ${req.user._id} updated goal ${goal._id}`, { action: 'UPDATE_GOAL', userId: req.user._id, goalId: goal._id });
+
   const goalObj = goal.toJSON();
   goalObj.status = getGoalStatus(goal);
   goalObj.daysRemaining = getDaysRemaining(goal.deadline);
@@ -113,6 +125,8 @@ const deleteGoal = asyncHandler(async (req, res, next) => {
   if (!goal) {
     return next(new AppError('Goal not found', 404));
   }
+
+  logger.info(`User ${req.user._id} deleted goal ${req.params.id}`, { action: 'DELETE_GOAL', userId: req.user._id, goalId: req.params.id });
 
   res.status(200).json({
     success: true,

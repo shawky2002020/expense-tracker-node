@@ -1,5 +1,7 @@
 const { asyncHandler, AppError } = require('../middlewares/errorMiddleware');
 const Category = require('../models/Category');
+const logger = require('../utils/logger');
+const { getPagination, getPaginationMeta } = require('../utils/paginationHelper');
 
 
 const createCategory = asyncHandler(async (req, res, next) => {
@@ -21,6 +23,8 @@ const createCategory = asyncHandler(async (req, res, next) => {
     description,
   });
 
+  logger.info(`User ${req.user._id} created category ${category._id}`, { action: 'CREATE_CATEGORY', userId: req.user._id, categoryId: category._id });
+
   res.status(201).json({
     success: true,
     message: 'Category created successfully',
@@ -32,13 +36,20 @@ const createCategory = asyncHandler(async (req, res, next) => {
 
 
 const getCategories = asyncHandler(async (req, res, next) => {
-  const categories = await Category.find({ isActive: true }).sort({ type: 1, name: 1 });
+  const { page = 1, limit = 10 } = req.query;
+  const { page: p, limit: l, skip } = getPagination(page, limit);
+
+  const [total, categories] = await Promise.all([
+    Category.countDocuments({ isActive: true }),
+    Category.find({ isActive: true }).sort({ type: 1, name: 1 }).skip(skip).limit(l)
+  ]);
+  const meta = getPaginationMeta(total, p, l);
 
   res.status(200).json({
     success: true,
     data: {
       categories,
-      count: categories.length,
+      meta,
     },
   });
 });
@@ -86,6 +97,8 @@ const updateCategory = asyncHandler(async (req, res, next) => {
     return next(new AppError('Category not found', 404));
   }
 
+  logger.info(`User ${req.user._id} updated category ${category._id}`, { action: 'UPDATE_CATEGORY', userId: req.user._id, categoryId: category._id });
+
   res.status(200).json({
     success: true,
     message: 'Category updated successfully',
@@ -107,6 +120,8 @@ const deleteCategory = asyncHandler(async (req, res, next) => {
   category.isActive = false;
   await category.save();
 
+  logger.info(`User ${req.user._id} deleted category ${category._id}`, { action: 'DELETE_CATEGORY', userId: req.user._id, categoryId: category._id });
+
   res.status(200).json({
     success: true,
     message: 'Category deleted successfully',
@@ -117,14 +132,20 @@ const deleteCategory = asyncHandler(async (req, res, next) => {
 
 const getCategoriesByType = asyncHandler(async (req, res, next) => {
   const { type } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  const { page: p, limit: l, skip } = getPagination(page, limit);
 
-  const categories = await Category.find({ type, isActive: true }).sort({ name: 1 });
+  const [total, categories] = await Promise.all([
+    Category.countDocuments({ type, isActive: true }),
+    Category.find({ type, isActive: true }).sort({ name: 1 }).skip(skip).limit(l)
+  ]);
+  const meta = getPaginationMeta(total, p, l);
 
   res.status(200).json({
     success: true,
     data: {
       categories,
-      count: categories.length,
+      meta,
     },
   });
 });
