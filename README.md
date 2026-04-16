@@ -13,6 +13,7 @@
 | **Categories & Goals** | Mazen Raafat Abdelhameed | Category management, savings goals with progress tracking |
 | **Budget & Recurring** | Hassan Abdelhamed Hassan | Budget alerts, cron jobs for recurring transactions |
 | **Analytics** | Hassan Muhammad | Spending aggregation, trends, CSV export |
+| **Documentation & Logs** | Global | Swagger API documentation, Winston audit logging, pagination utilities |
 
 ---
 
@@ -27,8 +28,11 @@ POST   /api/auth/login
 GET    /api/transactions?type=expense&startDate=&page=
 POST   /api/transactions
 
+# Users (admin only)
+GET    /api/users?page=&limit=
+
 # Budgets
-GET    /api/budgets/check-alerts
+GET    /api/budgets/alerts
 POST   /api/budgets
 
 # Analytics
@@ -36,13 +40,24 @@ GET    /api/analytics/monthly-spending?year=&month=
 GET    /api/analytics/summary
 GET    /api/analytics/export/csv
 
-# Categories (admin only)
-POST   /api/categories
+# Categories
+GET    /api/categories?page=&limit=
+POST   /api/categories (admin only)
 
 # Goals
+GET    /api/goals?page=&limit=
 GET    /api/goals/progress/:id
 PATCH  /api/goals/:id
+# API Documentation
+GET    /api-docs   # Swagger documentation interface
 ```
+
+---
+
+## 📚 API Documentation
+
+This project uses comprehensive **Swagger OpenAPI v3** documentation. 
+Once the server gets started, navigate to `/api-docs` to access a fully interactive web dashboard. It lists all components, request schemas, and responses. **Bearer Authentication** is fully supported out of the box directly in the dashboard UI!
 
 ---
 
@@ -69,6 +84,9 @@ PATCH  /api/goals/:id
 - [x] Budget alerts trigger on exceeded limits
 - [x] Recurring transactions auto-create daily
 - [x] Analytics return accurate aggregations
+- [x] **Rate Limiting** prevents abuse and API spamming
+- [x] **Audit Logging** with Winston traces major feature modifications inside `logs/audit.log`
+- [x] **Global Pagination** applied across standard GET queries
 
 ---
 
@@ -79,6 +97,9 @@ PATCH  /api/goals/:id
 - JWT + bcryptjs
 - Joi/Zod (validation)
 - node-cron (recurring jobs)
+- winston (Audit Logging)
+- swagger-ui-express & yamljs (API Documentation)
+- express-rate-limit (Security)
 
 ---
 
